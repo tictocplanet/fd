@@ -42,12 +42,14 @@ func Get(via *net.UnixConn, num int, filenames []string) ([]*os.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	socket := int(viaf.Fd())
 	defer viaf.Close()
+	return GetFromFileno(int(viaf.Fd()), num, filenames)
+}
 
+func GetFromFileno(fileno int, num int, filenames []string) (res []*os.File, err error) {
 	// recvmsg
 	buf := make([]byte, syscall.CmsgSpace(num*4))
-	_, _, _, _, err = syscall.Recvmsg(socket, nil, buf, 0)
+	_, _, _, _, err = syscall.Recvmsg(fileno, nil, buf, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +59,7 @@ func Get(via *net.UnixConn, num int, filenames []string) ([]*os.File, error) {
 	msgs, err = syscall.ParseSocketControlMessage(buf)
 
 	// convert fds to files
-	res := make([]*os.File, 0, len(msgs))
+	res = make([]*os.File, 0, len(msgs))
 	for i := 0; i < len(msgs) && err == nil; i++ {
 		var fds []int
 		fds, err = syscall.ParseUnixRights(&msgs[i])
