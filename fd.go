@@ -46,10 +46,18 @@ func Get(via *net.UnixConn, num int, filenames []string) ([]*os.File, error) {
 	return GetFromFileno(int(viaf.Fd()), num, filenames)
 }
 
-func GetFromFileno(fileno int, num int, filenames []string) (res []*os.File, err error) {
+func GetFromFileno(fileno int, num int, filenames []string) ([]*os.File, error) {
+	return getFromFileno(fileno, num, filenames, 0)
+}
+
+func TryGetFromFileno(fileno int, num int, filenames []string) ([]*os.File, error) {
+	return getFromFileno(fileno, num, filenames, syscall.MSG_DONTWAIT)
+}
+
+func getFromFileno(fileno int, num int, filenames []string, flags int) (res []*os.File, err error) {
 	// recvmsg
 	buf := make([]byte, syscall.CmsgSpace(num*4))
-	_, _, _, _, err = syscall.Recvmsg(fileno, nil, buf, 0)
+	_, _, _, _, err = syscall.Recvmsg(fileno, nil, buf, flags)
 	if err != nil {
 		return nil, err
 	}
